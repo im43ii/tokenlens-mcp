@@ -55,9 +55,39 @@ AI provider keys are **not required on the server** — the Chrome Extension pas
 - The MCP server stores session analytics in a local SQLite database (`~/.tokenlens/sessions.db`) — no data is sent to external services
 - Set a strong `ADMIN_SECRET` in your `.env` before exposing the server to any network
 
+## Hosted Server
+
+The production server is available at:
+
+```
+https://tokenlens-mcp-production.up.railway.app
+```
+
+| Endpoint | URL |
+|----------|-----|
+| Health   | `https://tokenlens-mcp-production.up.railway.app/health` |
+| SSE (MCP)| `https://tokenlens-mcp-production.up.railway.app/sse` |
+| Dashboard| `https://tokenlens-mcp-production.up.railway.app/dashboard` |
+| Chrome Extension default server URL | `https://tokenlens-mcp-production.up.railway.app` |
+
 ## Claude Desktop Setup
 
+**Option A — Hosted (recommended):** connect via SSE to the production server.
+
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "tokenlens": {
+      "url": "https://tokenlens-mcp-production.up.railway.app/sse",
+      "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+    }
+  }
+}
+```
+
+**Option B — Local stdio:** run the server on your own machine.
 
 ```json
 {

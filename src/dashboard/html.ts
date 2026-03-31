@@ -295,7 +295,7 @@ function renderRows(){
 
 // ── onboarding ─────────────────────────────────────────────────────────────
 function renderOnboarding(){
-  var cfg=esc(JSON.stringify({mcpServers:{tokenlens:{url:'http://localhost:3000/sse',headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2));
+  var cfg=esc(JSON.stringify({mcpServers:{tokenlens:{url:'https://tokenlens-mcp-production.up.railway.app/sse',headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2));
   var h='<div class="ob"><div class="ob-title">Welcome to TokenLens</div><div class="ob-sub">Get started in 3 steps</div><div class="ob-steps">';
   h+='<div class="ob-step"><div class="ob-n">1</div><div class="ob-t">Add to your editor</div><div class="ob-d">Paste this config into Cursor or Claude Desktop settings.</div><div class="codeblk" id="cfgblk">'+cfg+'<button class="cp-code" onclick="cpCode(\\'cfgblk\\',this)">Copy</button></div></div>';
   h+='<div class="ob-step"><div class="ob-n">2</div><div class="ob-t">Analyze a conversation</div><div class="ob-d">After chatting, call analyze_conversation with your messages array.</div><div class="codeblk">analyze_conversation({\\n  messages: [...],\\n  model: "claude-sonnet-4-5",\\n  editor: "cursor"\\n})</div></div>';
