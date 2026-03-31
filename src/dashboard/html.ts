@@ -1,10 +1,137 @@
+export function getRegisterHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TokenLens \u2014 Create Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0a0a0f;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);border-radius:16px;padding:48px 40px;width:100%;max-width:480px;text-align:center;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.logo{font-size:32px;font-weight:700;color:#6366f1;margin-bottom:8px}
+.tagline{font-size:14px;color:#94a3b8;margin-bottom:40px}
+label{display:block;text-align:left;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+input{width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:14px;outline:none;transition:border-color .2s}
+input:focus{border-color:#6366f1}
+.btn{width:100%;margin-top:16px;padding:13px;background:#6366f1;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{margin-top:16px;padding:10px 14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;font-size:13px;color:#f43f5e;display:none}
+.link{display:block;margin-top:20px;font-size:13px;color:#64748b}
+.link a{color:#6366f1;text-decoration:none}.link a:hover{text-decoration:underline}
+.success{display:none;text-align:left}
+.suc-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.02em}
+.suc-sub{font-size:13px;color:#94a3b8;text-align:center;margin-bottom:28px}
+.scard{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.scard-label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.scard-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.scard-body{font-size:12px;color:#94a3b8;line-height:1.6}
+.tok-box{display:flex;align-items:center;gap:8px;margin-top:10px}
+.tok-val{flex:1;padding:10px 13px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:#a5b4fc;word-break:break-all}
+.cp-btn{flex-shrink:0;padding:8px 14px;background:#6366f1;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.cp-btn:hover{opacity:.85}
+.warn{margin-top:8px;padding:8px 12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;font-size:11px;color:#f59e0b}
+.codeblk{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:#a5b4fc;margin-top:10px;white-space:pre;overflow-x:auto;line-height:1.5}
+.dash-btn{display:block;text-align:center;margin-top:20px;padding:14px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:10px;color:#6366f1;font-family:inherit;font-size:14px;font-weight:600;text-decoration:none;transition:all .2s}
+.dash-btn:hover{background:rgba(99,102,241,0.2)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="form-section">
+    <div class="logo">\u2b21 TokenLens</div>
+    <div class="tagline">Free forever \u2014 no email required</div>
+    <label for="nm">Your name (optional)</label>
+    <input id="nm" type="text" placeholder="e.g. Alex" maxlength="50" autocomplete="off">
+    <button class="btn" id="btn">Create Account \u2192</button>
+    <div class="err" id="err">Something went wrong. Please try again.</div>
+    <div class="link"><a href="/login">\u2190 Already have an account? Sign in</a></div>
+  </div>
+  <div class="success" id="success-section">
+    <div class="suc-title">Account created!</div>
+    <div class="suc-sub">Save your token \u2014 it won\u2019t be shown again.</div>
+    <div class="scard">
+      <div class="scard-label">Step 1</div>
+      <div class="scard-title">Your API Token</div>
+      <div class="tok-box">
+        <div class="tok-val" id="tok-display"></div>
+        <button class="cp-btn" id="cp-tok">Copy</button>
+      </div>
+      <div class="warn">\u26a0\ufe0f Shown once \u2014 copy it now and keep it safe.</div>
+    </div>
+    <div class="scard">
+      <div class="scard-label">Step 2</div>
+      <div class="scard-title">Chrome Extension</div>
+      <div class="scard-body">Open TokenLens on any AI site. The hosted server is already pre-filled. Paste your token when prompted.</div>
+      <div class="tok-box" style="margin-top:10px">
+        <div class="tok-val" id="tok-copy2"></div>
+        <button class="cp-btn" id="cp-tok2">Copy token</button>
+      </div>
+    </div>
+    <div class="scard">
+      <div class="scard-label">Step 3 (optional)</div>
+      <div class="scard-title">Claude Desktop / Cursor MCP</div>
+      <div class="scard-body">Add to your <code style="font-family:monospace;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px">claude_desktop_config.json</code>:</div>
+      <div class="codeblk" id="cfg-blk"></div>
+      <button class="cp-btn" id="cp-cfg" style="margin-top:8px">Copy config</button>
+    </div>
+    <a class="dash-btn" id="dash-link" href="#">\u2192 Open Dashboard</a>
+  </div>
+</div>
+<script>
+var btn=document.getElementById('btn'),nm=document.getElementById('nm'),err=document.getElementById('err');
+async function register(){
+  var name=nm.value.trim()||'User';
+  btn.disabled=true;btn.textContent='Creating\u2026';err.style.display='none';
+  try{
+    var r=await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
+    var d=await r.json();
+    if(!r.ok){err.textContent=d.error||'Something went wrong.';err.style.display='block';btn.disabled=false;btn.textContent='Create Account \u2192';return;}
+    showSuccess(d.token,d.name);
+  }catch(e){
+    err.textContent='Connection error. Please try again.';
+    err.style.display='block';
+    btn.disabled=false;btn.textContent='Create Account \u2192';
+  }
+}
+function showSuccess(tok,name){
+  document.getElementById('form-section').style.display='none';
+  var s=document.getElementById('success-section');
+  s.style.display='block';
+  document.getElementById('tok-display').textContent=tok;
+  document.getElementById('tok-copy2').textContent=tok;
+  var cfg=JSON.stringify({mcpServers:{tokenlens:{url:'https://tokenlens-mcp-production.up.railway.app/sse',headers:{Authorization:'Bearer '+tok}}}},null,2);
+  document.getElementById('cfg-blk').textContent=cfg;
+  document.getElementById('dash-link').href='/login?token='+encodeURIComponent(tok);
+  localStorage.setItem('tl_token',tok);
+  localStorage.setItem('tl_name',name||'User');
+  function cp(btnId,text,resetLabel){
+    document.getElementById(btnId).addEventListener('click',function(){
+      navigator.clipboard.writeText(text).then(function(){
+        var b=document.getElementById(btnId);b.textContent='Copied!';
+        setTimeout(function(){b.textContent=resetLabel;},2000);
+      });
+    });
+  }
+  cp('cp-tok',tok,'Copy');cp('cp-tok2',tok,'Copy token');cp('cp-cfg',cfg,'Copy config');
+}
+btn.addEventListener('click',register);
+nm.addEventListener('keydown',function(e){if(e.key==='Enter')register();});
+<\/script>
+</body>
+</html>`;
+}
+
 export function getLoginHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TokenLens — Login</title>
+<title>TokenLens \u2014 Login</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -22,6 +149,8 @@ input:focus{border-color:#6366f1}
 .btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:not-allowed}
 .err{margin-top:16px;padding:10px 14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;font-size:13px;color:#f43f5e;display:none}
 .shake{animation:shake .4s ease}
+.link{display:block;margin-top:20px;font-size:13px;color:#64748b}
+.link a{color:#6366f1;text-decoration:none}.link a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -32,10 +161,12 @@ input:focus{border-color:#6366f1}
   <input id="tok" type="password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
   <button class="btn" id="btn">Sign In</button>
   <div class="err" id="err">Invalid token. Please check and try again.</div>
+  <div class="link"><a href="/register">No account? Create one free \u2192</a></div>
 </div>
 <script>
 if(localStorage.getItem('tl_token'))location.href='/dashboard';
 var btn=document.getElementById('btn'),inp=document.getElementById('tok'),err=document.getElementById('err'),card=document.getElementById('card');
+(function(){var p=new URLSearchParams(location.search).get('token');if(p)inp.value=p;})();
 async function login(){
   var t=inp.value.trim();if(!t)return;
   btn.disabled=true;btn.textContent='Verifying\u2026';
@@ -297,7 +428,7 @@ function renderRows(){
 function renderOnboarding(){
   var cfg=esc(JSON.stringify({mcpServers:{tokenlens:{url:'https://tokenlens-mcp-production.up.railway.app/sse',headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2));
   var h='<div class="ob"><div class="ob-title">Welcome to TokenLens</div><div class="ob-sub">Get started in 3 steps</div><div class="ob-steps">';
-  h+='<div class="ob-step"><div class="ob-n">1</div><div class="ob-t">Add to your editor</div><div class="ob-d">Paste this config into Cursor or Claude Desktop settings.</div><div class="codeblk" id="cfgblk">'+cfg+'<button class="cp-code" onclick="cpCode(\\'cfgblk\\',this)">Copy</button></div></div>';
+  h+='<div class="ob-step"><div class="ob-n">1</div><div class="ob-t">Add to your editor</div><div class="ob-d">Paste this config into Cursor or Claude Desktop settings. Replace <code style="font-family:monospace;background:rgba(255,255,255,0.07);padding:1px 4px;border-radius:3px">YOUR_TOKEN</code> with your token &mdash; <a href="/register" style="color:var(--primary);text-decoration:none">get one free at /register</a>.</div><div class="codeblk" id="cfgblk">'+cfg+'<button class="cp-code" onclick="cpCode(\\'cfgblk\\',this)">Copy</button></div></div>';
   h+='<div class="ob-step"><div class="ob-n">2</div><div class="ob-t">Analyze a conversation</div><div class="ob-d">After chatting, call analyze_conversation with your messages array.</div><div class="codeblk">analyze_conversation({\\n  messages: [...],\\n  model: "claude-sonnet-4-5",\\n  editor: "cursor"\\n})</div></div>';
   h+='<div class="ob-step"><div class="ob-n">3</div><div class="ob-t">See your insights</div><div class="ob-d">This dashboard updates in real-time as you use TokenLens in your editor.</div></div>';
   h+='</div></div>';

@@ -10,7 +10,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { createUser, getAllUsers, getTotalStats, getAllRecentSessions, getAggregateBreakdown, getSession, initDb, getStatsByEditor, sessionEvents, getUserByToken } from './storage/sessions';
 import { authMiddleware, adminMiddleware, AuthenticatedRequest } from './middleware/auth';
-import { getDashboardHtml, getLoginHtml } from './dashboard/html';
+import { getDashboardHtml, getLoginHtml, getRegisterHtml } from './dashboard/html';
 import {
   handleAnalyzeConversation,
   handleAnalyzeSession,
@@ -32,6 +32,11 @@ import {
 dotenv.config();
 
 const app = express();
+
+// In-memory rate limit for registration: 10 per IP per hour
+const regRateLimit = new Map<string, { count: number; resetAt: number }>();
+const REG_LIMIT = 10;
+const REG_WINDOW_MS = 60 * 60 * 1000;
 app.use(cors());
 // NOTE: express.json() is intentionally NOT applied globally.
 // The /message endpoint hands the raw request stream to SSEServerTransport.handlePostMessage,
@@ -49,6 +54,38 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/login', (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getLoginHtml());
+});
+
+// Registration page
+app.get('/register', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getRegisterHtml());
+});
+
+// Self-service registration endpoint
+app.post('/register', express.json(), (req: Request, res: Response) => {
+  const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = regRateLimit.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= REG_LIMIT) {
+      res.status(429).json({ error: 'Too many registrations. Please try again in an hour.' });
+      return;
+    }
+    entry.count++;
+  } else {
+    regRateLimit.set(ip, { count: 1, resetAt: now + REG_WINDOW_MS });
+  }
+
+  const rawName = (req.body as { name?: unknown }).name;
+  const name = typeof rawName === 'string'
+    ? rawName.replace(/[<>"'&]/g, '').trim().slice(0, 50) || 'User'
+    : 'User';
+
+  const id = uuidv4();
+  const token = uuidv4();
+  const user = createUser(id, token, name);
+  res.json({ token, name: user.name, id: user.id });
 });
 
 // Web dashboard
@@ -602,6 +639,7 @@ initDb().then(() => {
     console.log(`TokenLens MCP server running on http://localhost:${PORT}`);
     console.log(`  Dashboard: http://localhost:${PORT}/dashboard`);
     console.log(`  Login:     http://localhost:${PORT}/login`);
+    console.log(`  Register:  http://localhost:${PORT}/register`);
     console.log(`  Health:    http://localhost:${PORT}/health`);
     console.log(`  SSE:       http://localhost:${PORT}/sse`);
     console.log(`  Admin:     POST /admin/users  (set ADMIN_SECRET env var)`);
