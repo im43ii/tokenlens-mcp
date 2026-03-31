@@ -37,7 +37,7 @@ export async function handleAnalyzeConversation(args: unknown, userId: string): 
     : 0;
 
   const sessionId = randomUUID();
-  saveSession({
+  await saveSession({
     id: sessionId,
     userId,
     provider: provider ?? 'anthropic',
@@ -76,10 +76,10 @@ export async function handleAnalyzeSession(args: unknown, userId: string): Promi
   const { sessionId } = z.object({ sessionId: z.string().optional() }).parse(args);
   let session;
   if (sessionId) {
-    session = getSession(sessionId, userId);
+    session = await getSession(sessionId, userId);
     if (!session) throw new Error('Session not found');
   } else {
-    const recent = getRecentSessions(userId, 1);
+    const recent = await getRecentSessions(userId, 1);
     if (!recent.length) throw new Error('No sessions found');
     session = recent[0];
   }
@@ -97,7 +97,7 @@ export async function handleAnalyzeSession(args: unknown, userId: string): Promi
 // ── get_token_breakdown ──────────────────────────────────────────────────────
 export async function handleGetTokenBreakdown(args: unknown, userId: string): Promise<unknown> {
   const { sessionId } = z.object({ sessionId: z.string() }).parse(args);
-  const session = getSession(sessionId, userId);
+  const session = await getSession(sessionId, userId);
   if (!session) throw new Error('Session not found');
   const { breakdown } = session;
   const total = breakdown.total || 1;
@@ -118,10 +118,10 @@ export async function handleGetSuggestions(args: unknown, userId: string): Promi
   const { sessionId } = z.object({ sessionId: z.string().optional() }).parse(args);
   let session;
   if (sessionId) {
-    session = getSession(sessionId, userId);
+    session = await getSession(sessionId, userId);
     if (!session) throw new Error('Session not found');
   } else {
-    const recent = getRecentSessions(userId, 1);
+    const recent = await getRecentSessions(userId, 1);
     if (!recent.length) throw new Error('No sessions found');
     session = recent[0];
   }
@@ -134,7 +134,7 @@ export async function handleGetSuggestions(args: unknown, userId: string): Promi
 // ── get_session_history ──────────────────────────────────────────────────────
 export async function handleGetSessionHistory(args: unknown, userId: string): Promise<unknown> {
   const { limit } = z.object({ limit: z.number().optional().default(10) }).parse(args);
-  const sessions = getRecentSessions(userId, limit);
+  const sessions = await getRecentSessions(userId, limit);
   return {
     sessions: sessions.map(s => ({
       id: s.id,
@@ -152,7 +152,7 @@ export async function handleGetSessionHistory(args: unknown, userId: string): Pr
 // ── get_stats ────────────────────────────────────────────────────────────────
 export async function handleGetStats(args: unknown, userId: string): Promise<unknown> {
   void args;
-  return getTotalStats(userId);
+  return await getTotalStats(userId);
 }
 
 // ── set_budget ───────────────────────────────────────────────────────────────
@@ -162,8 +162,8 @@ export async function handleSetBudget(args: unknown, _userId: string): Promise<u
     dailyLimit:      z.number().nullable().optional(),
     alertThreshold:  z.number().min(0).max(1).optional(),
   }).parse(args);
-  setBudget(params);
-  return { success: true, budget: getBudget() };
+  await setBudget(params);
+  return { success: true, budget: await getBudget() };
 }
 
 // ── export_report ─────────────────────────────────────────────────────────────
@@ -223,10 +223,10 @@ export async function handleExportReport(args: unknown, userId: string): Promise
   const { sessionId } = z.object({ sessionId: z.string().optional() }).parse(args);
   let session: Session | null = null;
   if (sessionId) {
-    session = getSession(sessionId, userId);
+    session = await getSession(sessionId, userId);
     if (!session) throw new Error('Session not found');
   } else {
-    const recent = getRecentSessions(userId, 1);
+    const recent = await getRecentSessions(userId, 1);
     if (!recent.length) throw new Error('No sessions found');
     session = recent[0];
   }
@@ -292,7 +292,7 @@ export async function handleCompressContext(args: unknown, _userId: string): Pro
 // ── get_editor_stats ──────────────────────────────────────────────────────────
 export async function handleGetEditorStats(args: unknown, userId: string): Promise<unknown> {
   void args;
-  return getStatsByEditor(userId);
+  return await getStatsByEditor(userId);
 }
 
 // ── estimate_cost ─────────────────────────────────────────────────────────────
@@ -335,14 +335,14 @@ export async function handleEstimateCost(args: unknown, _userId: string): Promis
 // ── get_budget_status ─────────────────────────────────────────────────────────
 export async function handleGetBudgetStatus(args: unknown, userId: string): Promise<unknown> {
   void args;
-  const budget = getBudget();
+  const budget = await getBudget();
   const now = Date.now();
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const weekStart = new Date(now - 7 * 24 * 3600 * 1000);
-  const todaySessions = getSessionsInDateRange(userId, todayStart.getTime(), now);
+  const todaySessions = await getSessionsInDateRange(userId, todayStart.getTime(), now);
   const tokensToday = todaySessions.reduce((s, x) => s + x.breakdown.total, 0);
   const costToday = todaySessions.reduce((s, x) => s + x.cost, 0);
-  const weekSessions = getSessionsInDateRange(userId, weekStart.getTime(), now);
+  const weekSessions = await getSessionsInDateRange(userId, weekStart.getTime(), now);
   const avgDailyTokens = weekSessions.reduce((s, x) => s + x.breakdown.total, 0) / 7;
   let dailyLevel: 'ok' | 'warning' | 'critical' = 'ok';
   let dailyPct = 0;
@@ -368,8 +368,8 @@ export async function handleWeeklySummary(args: unknown, userId: string): Promis
   const now = Date.now();
   const thisWeekStart = now - 7 * 24 * 3600 * 1000;
   const lastWeekStart = now - 14 * 24 * 3600 * 1000;
-  const thisWeek = getSessionsInDateRange(userId, thisWeekStart, now);
-  const lastWeek = getSessionsInDateRange(userId, lastWeekStart, thisWeekStart);
+  const thisWeek = await getSessionsInDateRange(userId, thisWeekStart, now);
+  const lastWeek = await getSessionsInDateRange(userId, lastWeekStart, thisWeekStart);
   const thisTokens = thisWeek.reduce((s, x) => s + x.breakdown.total, 0);
   const lastTokens = lastWeek.reduce((s, x) => s + x.breakdown.total, 0);
   const thisCost = thisWeek.reduce((s, x) => s + x.cost, 0);

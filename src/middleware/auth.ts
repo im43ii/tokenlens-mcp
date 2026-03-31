@@ -6,7 +6,7 @@ export interface AuthenticatedRequest extends Request {
   user?: User;
 }
 
-export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export async function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing or invalid Authorization header' });
@@ -14,20 +14,24 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   }
 
   const token = authHeader.slice(7);
-  const user = getUserByToken(token);
-  if (!user) {
-    res.status(401).json({ error: 'Invalid or expired token' });
-    return;
-  }
+  try {
+    const user = await getUserByToken(token);
+    if (!user) {
+      res.status(401).json({ error: 'Invalid or expired token' });
+      return;
+    }
 
-  const allowed = checkRateLimit(user.id, 100, 3600000);
-  if (!allowed) {
-    res.status(429).json({ error: 'Rate limit exceeded: 100 requests per hour' });
-    return;
-  }
+    const allowed = await checkRateLimit(user.id, 100, 3600000);
+    if (!allowed) {
+      res.status(429).json({ error: 'Rate limit exceeded: 100 requests per hour' });
+      return;
+    }
 
-  req.user = user;
-  next();
+    req.user = user;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }
 
 export function adminMiddleware(req: Request, res: Response, next: NextFunction): void {

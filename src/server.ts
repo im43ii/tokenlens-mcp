@@ -63,7 +63,7 @@ app.get('/register', (_req: Request, res: Response) => {
 });
 
 // Self-service registration endpoint
-app.post('/register', express.json(), (req: Request, res: Response) => {
+app.post('/register', express.json(), async (req: Request, res: Response) => {
   const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
   const entry = regRateLimit.get(ip);
@@ -84,7 +84,7 @@ app.post('/register', express.json(), (req: Request, res: Response) => {
 
   const id = uuidv4();
   const token = uuidv4();
-  const user = createUser(id, token, name);
+  const user = await createUser(id, token, name);
   res.json({ token, name: user.name, id: user.id });
 });
 
@@ -95,11 +95,11 @@ app.get('/dashboard', (_req: Request, res: Response) => {
 });
 
 // Auth validate
-app.get('/auth/validate', (req: Request, res: Response) => {
+app.get('/auth/validate', async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) { res.status(401).json({ valid: false }); return; }
   const token = authHeader.slice(7);
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) { res.status(401).json({ valid: false }); return; }
   res.json({ valid: true, name: user.name, id: user.id });
 });
@@ -119,11 +119,11 @@ app.get('/dashboard/events', (_req: Request, res: Response) => {
 });
 
 // Dashboard data API (no auth required — local-only endpoints)
-app.get('/api/dashboard', (_req: Request, res: Response) => {
-  const stats = getTotalStats();
-  const breakdown = getAggregateBreakdown();
-  const editorStats = getStatsByEditor();
-  const recentSessions = getAllRecentSessions(20).map(s => ({
+app.get('/api/dashboard', async (_req: Request, res: Response) => {
+  const stats = await getTotalStats();
+  const breakdown = await getAggregateBreakdown();
+  const editorStats = await getStatsByEditor();
+  const recentSessions = (await getAllRecentSessions(20)).map(s => ({
     id: s.id, provider: s.provider, model: s.model, editor: s.editor,
     timestamp: s.timestamp, totalTokens: s.breakdown.total,
     cost: s.cost, wasteCount: s.waste.length,
@@ -131,14 +131,14 @@ app.get('/api/dashboard', (_req: Request, res: Response) => {
   res.json({ stats, breakdown, editorStats, recentSessions });
 });
 
-app.get('/api/dashboard/session/:id', (req: Request, res: Response) => {
-  const session = getSession(req.params.id);
+app.get('/api/dashboard/session/:id', async (req: Request, res: Response) => {
+  const session = await getSession(req.params.id);
   if (!session) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(session);
 });
 
 // Admin: create user
-app.post('/admin/users', express.json(), adminMiddleware, (req: Request, res: Response) => {
+app.post('/admin/users', express.json(), adminMiddleware, async (req: Request, res: Response) => {
   const { name } = req.body as { name?: string };
   if (!name) {
     res.status(400).json({ error: 'name is required' });
@@ -146,19 +146,19 @@ app.post('/admin/users', express.json(), adminMiddleware, (req: Request, res: Re
   }
   const id = uuidv4();
   const token = uuidv4();
-  const user = createUser(id, token, name);
+  const user = await createUser(id, token, name);
   res.json({ user });
 });
 
 // Admin: list users
-app.get('/admin/users', adminMiddleware, (_req: Request, res: Response) => {
-  const users = getAllUsers();
+app.get('/admin/users', adminMiddleware, async (_req: Request, res: Response) => {
+  const users = await getAllUsers();
   res.json({ users });
 });
 
 // Admin: server stats
-app.get('/admin/stats', adminMiddleware, (_req: Request, res: Response) => {
-  const stats = getTotalStats();
+app.get('/admin/stats', adminMiddleware, async (_req: Request, res: Response) => {
+  const stats = await getTotalStats();
   res.json({ stats });
 });
 
