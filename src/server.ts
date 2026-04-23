@@ -190,10 +190,17 @@ app.get('/admin/stats', adminMiddleware, async (_req: Request, res: Response) =>
   res.json({ stats });
 });
 
-// Direct analysis endpoint for Chrome extension — no auth required
+// Direct analysis endpoint for Chrome extension
+// With valid token: saves session linked to that user. Without token: analyzes but does not save.
 app.post('/analyze-direct', express.json(), async (req: Request, res: Response) => {
   try {
-    const result = await handleAnalyzeConversation(req.body, 'extension');
+    const authHeader = req.headers.authorization;
+    let userId: string | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      const user = await getUserByToken(authHeader.slice(7));
+      userId = user?.id ?? null;
+    }
+    const result = await handleAnalyzeConversation(req.body, userId);
     res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

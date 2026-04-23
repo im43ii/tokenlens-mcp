@@ -24,7 +24,7 @@ const AnalyzeConversationSchema = z.object({
   editor:       z.enum(['cursor','claude_desktop','v0','chatgpt','api','other']).optional().default('other'),
 });
 
-export async function handleAnalyzeConversation(args: unknown, userId: string): Promise<unknown> {
+export async function handleAnalyzeConversation(args: unknown, userId: string | null): Promise<unknown> {
   const { messages, model, tools_loaded, provider, editor } = AnalyzeConversationSchema.parse(args);
 
   const { perMessage, breakdown, waste, suggestions } = analyzeConversation(messages, tools_loaded);
@@ -37,18 +37,20 @@ export async function handleAnalyzeConversation(args: unknown, userId: string): 
     : 0;
 
   const sessionId = randomUUID();
-  await saveSession({
-    id: sessionId,
-    userId,
-    provider: provider ?? 'anthropic',
-    model,
-    editor,
-    timestamp: Date.now(),
-    breakdown,
-    waste,
-    suggestions,
-    cost,
-  });
+  if (userId !== null) {
+    await saveSession({
+      id: sessionId,
+      userId,
+      provider: provider ?? 'anthropic',
+      model,
+      editor,
+      timestamp: Date.now(),
+      breakdown,
+      waste,
+      suggestions,
+      cost,
+    });
+  }
 
   return {
     sessionId,
