@@ -358,11 +358,15 @@ var CLABELS={system:'System',history:'History',tools:'Tools',userMessage:'User M
 var ECLR={cursor:'eb-cursor',claude_desktop:'eb-claude_desktop',v0:'eb-v0',chatgpt:'eb-chatgpt',api:'eb-api',other:'eb-other'};
 var ELBL={cursor:'Cursor',claude_desktop:'Claude Desktop',v0:'v0',chatgpt:'ChatGPT',api:'API',other:'Other'};
 
+// ── auth guard ─────────────────────────────────────────────────────────────
+var TL_TOKEN=localStorage.getItem('tl_token');
+if(!TL_TOKEN){location.href='/login';throw new Error('redirect');}
+
 // ── state ──────────────────────────────────────────────────────────────────
 var allS=[],filtS=[],activeTab='all',selId=null,chart=null;
 
-// ── navbar (no auth required) ──────────────────────────────────────────────
-document.getElementById('uname').textContent=localStorage.getItem('tl_name')||'Guest';
+// ── navbar ─────────────────────────────────────────────────────────────────
+document.getElementById('uname').textContent=localStorage.getItem('tl_name')||'User';
 document.getElementById('btnout').onclick=function(){
   localStorage.removeItem('tl_token');
   localStorage.removeItem('tl_name');
@@ -445,7 +449,7 @@ function openDP(id){
   document.getElementById('ov').classList.add('on');
   document.getElementById('dp').classList.add('on');
   document.getElementById('dpbody').innerHTML='<div class="skel" style="height:14px;margin:10px 0"></div><div class="skel" style="height:14px;width:60%"></div>';
-  fetch('/api/dashboard/session/'+id)
+  fetch('/api/dashboard/session/'+id,{headers:{'Authorization':'Bearer '+TL_TOKEN}})
     .then(function(r){return r.json();})
     .then(function(s){renderDPBody(s);})
     .catch(function(){document.getElementById('dpbody').innerHTML='<div style="color:var(--rose);padding:20px">Failed to load session.</div>';});
@@ -502,9 +506,9 @@ function dlMd(s){
   toast('Report downloaded');
 }
 
-// ── load (no auth, plain fetch) ────────────────────────────────────────────
+// ── load ───────────────────────────────────────────────────────────────────
 function load(){
-  fetch('/api/dashboard')
+  fetch('/api/dashboard',{headers:{'Authorization':'Bearer '+TL_TOKEN}})
     .then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
       return r.json();
@@ -534,7 +538,7 @@ function load(){
 
 // ── real-time SSE ──────────────────────────────────────────────────────────
 var ld=document.getElementById('live');
-var es=new EventSource('/dashboard/events');
+var es=new EventSource('/dashboard/events?token='+encodeURIComponent(TL_TOKEN));
 es.onopen=function(){ld.classList.add('on');};
 es.onerror=function(){ld.classList.remove('on');};
 es.onmessage=function(ev){

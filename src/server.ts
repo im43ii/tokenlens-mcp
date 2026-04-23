@@ -8,7 +8,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { v4 as uuidv4 } from 'uuid';
-import { createUser, getAllUsers, getTotalStats, getAllRecentSessions, getAggregateBreakdown, getSession, initDb, getStatsByEditor, sessionEvents, getUserByToken } from './storage/sessions';
+import { createUser, getAllUsers, getTotalStats, getAllRecentSessions, getRecentSessions, getAggregateBreakdown, getSession, initDb, getStatsByEditor, sessionEvents, getUserByToken } from './storage/sessions';
 import { authMiddleware, adminMiddleware, AuthenticatedRequest } from './middleware/auth';
 import { getDashboardHtml, getLoginHtml, getRegisterHtml } from './dashboard/html';
 import {
@@ -104,26 +104,47 @@ app.get('/auth/validate', async (req: Request, res: Response) => {
   res.json({ valid: true, name: user.name, id: user.id });
 });
 
-// SSE events for dashboard
-app.get('/dashboard/events', (_req: Request, res: Response) => {
+// SSE events for dashboard — token passed as query param (EventSource doesn't support headers)
+app.get('/dashboard/events', async (req: Request, res: Response) => {
+  const token = req.query.token as string | undefined;
+  const user = token ? await getUserByToken(token) : null;
+  const userId = user?.id;
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
   res.write('data: {"type":"connected"}\n\n');
-  const onSession = (session: unknown) => {
+
+  if (!userId) {
+    res.on('close', () => {});
+    return;
+  }
+
+  const onSession = (session: { userId?: string } & Record<string, unknown>) => {
+    if (session.userId !== userId) return;
     res.write(`data: ${JSON.stringify({ type: 'new_session', session })}\n\n`);
   };
   sessionEvents.on('new_session', onSession);
   res.on('close', () => { sessionEvents.off('new_session', onSession); });
 });
 
-// Dashboard data API (no auth required — local-only endpoints)
-app.get('/api/dashboard', async (_req: Request, res: Response) => {
-  const stats = await getTotalStats();
-  const breakdown = await getAggregateBreakdown();
-  const editorStats = await getStatsByEditor();
-  const recentSessions = (await getAllRecentSessions(20)).map(s => ({
+// Dashboard data API — scoped to the authenticated user
+app.get('/api/dashboard', async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  let userId: string | undefined;
+  if (authHeader?.startsWith('Bearer ')) {
+    const user = await getUserByToken(authHeader.slice(7));
+    userId = user?.id;
+  }
+  if (!userId) {
+    res.json({ stats: { totalSessions: 0, totalTokens: 0, totalCost: 0 }, breakdown: {}, editorStats: {}, recentSessions: [] });
+    return;
+  }
+  const stats = await getTotalStats(userId);
+  const breakdown = await getAggregateBreakdown(userId);
+  const editorStats = await getStatsByEditor(userId);
+  const recentSessions = (await getRecentSessions(userId, 20)).map(s => ({
     id: s.id, provider: s.provider, model: s.model, editor: s.editor,
     timestamp: s.timestamp, totalTokens: s.breakdown.total,
     cost: s.cost, wasteCount: s.waste.length,
@@ -132,7 +153,14 @@ app.get('/api/dashboard', async (_req: Request, res: Response) => {
 });
 
 app.get('/api/dashboard/session/:id', async (req: Request, res: Response) => {
-  const session = await getSession(req.params.id);
+  const authHeader = req.headers.authorization;
+  let userId: string | undefined;
+  if (authHeader?.startsWith('Bearer ')) {
+    const user = await getUserByToken(authHeader.slice(7));
+    userId = user?.id;
+  }
+  if (!userId) { res.status(404).json({ error: 'Not found' }); return; }
+  const session = await getSession(req.params.id, userId);
   if (!session) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(session);
 });

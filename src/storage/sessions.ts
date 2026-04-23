@@ -458,18 +458,29 @@ export async function setBudget(budget: Partial<Budget>): Promise<void> {
   }
 }
 
-export async function getAggregateBreakdown(): Promise<TokenBreakdown> {
+export async function getAggregateBreakdown(userId?: string): Promise<TokenBreakdown> {
   if (USE_POSTGRES) {
-    const row = await pgQueryOne(`
-      SELECT
-        COALESCE(SUM((breakdown_json::json->>'system')::numeric),      0)::float8 AS system,
-        COALESCE(SUM((breakdown_json::json->>'history')::numeric),     0)::float8 AS history,
-        COALESCE(SUM((breakdown_json::json->>'tools')::numeric),       0)::float8 AS tools,
-        COALESCE(SUM((breakdown_json::json->>'userMessage')::numeric), 0)::float8 AS "userMessage",
-        COALESCE(SUM((breakdown_json::json->>'response')::numeric),    0)::float8 AS response,
-        COALESCE(SUM((breakdown_json::json->>'total')::numeric),       0)::float8 AS total
-      FROM sessions
-    `);
+    const row = userId
+      ? await pgQueryOne(`
+          SELECT
+            COALESCE(SUM((breakdown_json::json->>'system')::numeric),      0)::float8 AS system,
+            COALESCE(SUM((breakdown_json::json->>'history')::numeric),     0)::float8 AS history,
+            COALESCE(SUM((breakdown_json::json->>'tools')::numeric),       0)::float8 AS tools,
+            COALESCE(SUM((breakdown_json::json->>'userMessage')::numeric), 0)::float8 AS "userMessage",
+            COALESCE(SUM((breakdown_json::json->>'response')::numeric),    0)::float8 AS response,
+            COALESCE(SUM((breakdown_json::json->>'total')::numeric),       0)::float8 AS total
+          FROM sessions WHERE user_id = $1
+        `, [userId])
+      : await pgQueryOne(`
+          SELECT
+            COALESCE(SUM((breakdown_json::json->>'system')::numeric),      0)::float8 AS system,
+            COALESCE(SUM((breakdown_json::json->>'history')::numeric),     0)::float8 AS history,
+            COALESCE(SUM((breakdown_json::json->>'tools')::numeric),       0)::float8 AS tools,
+            COALESCE(SUM((breakdown_json::json->>'userMessage')::numeric), 0)::float8 AS "userMessage",
+            COALESCE(SUM((breakdown_json::json->>'response')::numeric),    0)::float8 AS response,
+            COALESCE(SUM((breakdown_json::json->>'total')::numeric),       0)::float8 AS total
+          FROM sessions
+        `);
     return {
       system:      (row?.['system']        as number) || 0,
       history:     (row?.['history']       as number) || 0,
@@ -479,16 +490,27 @@ export async function getAggregateBreakdown(): Promise<TokenBreakdown> {
       total:       (row?.['total']         as number) || 0,
     };
   } else {
-    const row = sqliteQueryOne(`
-      SELECT
-        SUM(json_extract(breakdown_json,'$.system'))      AS system,
-        SUM(json_extract(breakdown_json,'$.history'))     AS history,
-        SUM(json_extract(breakdown_json,'$.tools'))       AS tools,
-        SUM(json_extract(breakdown_json,'$.userMessage')) AS userMessage,
-        SUM(json_extract(breakdown_json,'$.response'))    AS response,
-        SUM(json_extract(breakdown_json,'$.total'))       AS total
-      FROM sessions
-    `);
+    const row = userId
+      ? sqliteQueryOne(`
+          SELECT
+            SUM(json_extract(breakdown_json,'$.system'))      AS system,
+            SUM(json_extract(breakdown_json,'$.history'))     AS history,
+            SUM(json_extract(breakdown_json,'$.tools'))       AS tools,
+            SUM(json_extract(breakdown_json,'$.userMessage')) AS userMessage,
+            SUM(json_extract(breakdown_json,'$.response'))    AS response,
+            SUM(json_extract(breakdown_json,'$.total'))       AS total
+          FROM sessions WHERE user_id = ?
+        `, [userId])
+      : sqliteQueryOne(`
+          SELECT
+            SUM(json_extract(breakdown_json,'$.system'))      AS system,
+            SUM(json_extract(breakdown_json,'$.history'))     AS history,
+            SUM(json_extract(breakdown_json,'$.tools'))       AS tools,
+            SUM(json_extract(breakdown_json,'$.userMessage')) AS userMessage,
+            SUM(json_extract(breakdown_json,'$.response'))    AS response,
+            SUM(json_extract(breakdown_json,'$.total'))       AS total
+          FROM sessions
+        `);
     return {
       system:      (row?.['system']      as number) || 0,
       history:     (row?.['history']     as number) || 0,
